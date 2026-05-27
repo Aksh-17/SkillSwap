@@ -179,29 +179,20 @@
 
   // ---- Skills ----
   async function loadSkills() {
-    if (isViewingOther) {
-      document.getElementById('skillCountTitle').textContent = 'Skills unavailable';
-      document.getElementById('skillList').innerHTML = `
-        <div class="empty-state" style="padding:24px 0;">
-          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><path d="M13 16h-1v-4h-1"/><path d="M12 7a4 4 0 0 1 0 8"/><path d="M8 12h8"/></svg></div>
-          <h3>Private Profile</h3>
-          <p>Skills are not editable when viewing another user from requests.</p>
-        </div>`;
-      return;
-    }
     showSpinner('skillList');
-    const data = await apiCall('/skills/mine?user_id=' + me.id);
+    const userId = isViewingOther ? profileUserId : me.id;
+    const data = await apiCall('/skills/mine?user_id=' + userId);
     if (!data.success) return;
     mySkills = data.skills;
-    document.getElementById('skillCountTitle').textContent =
-      `My Skills (${mySkills.length})`;
+    const title = isViewingOther ? `${profileUser.name}'s Skills (${mySkills.length})` : `My Skills (${mySkills.length})`;
+    document.getElementById('skillCountTitle').textContent = title;
 
     if (mySkills.length === 0) {
       document.getElementById('skillList').innerHTML =
         `<div class="empty-state" style="padding:24px 0;">
            <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
            <h3>No skills yet</h3>
-           <p>Add your first skill above to start swapping!</p>
+           <p>${isViewingOther ? 'This user has not added any skills yet.' : 'Add your first skill above to start swapping!'}</p>
          </div>`;
       populateSkillDropdown();
       return;
@@ -215,7 +206,7 @@
           </span>
           <span class="skill-row-name">${skill.name}</span>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="deleteSkill(${skill.id})">Delete</button>
+        ${isViewingOther ? '' : `<button class="btn btn-danger btn-sm" onclick="deleteSkill(${skill.id})">Delete</button>`}
       </div>`).join('');
 
     populateSkillDropdown();
@@ -297,15 +288,6 @@
 
   // ---- My Videos ----
   async function loadMyVideos() {
-    if (isViewingOther) {
-      document.getElementById('myVideoList').innerHTML = `
-        <div class="empty-state" style="padding:20px 0;">
-          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
-          <h3>Video details hidden</h3>
-          <p>Video uploads are not shown when viewing another user from requests.</p>
-        </div>`;
-      return;
-    }
     showSpinner('myVideoList');
     const offers = mySkills.filter(s => s.type === 'offer');
     if (offers.length === 0) {
@@ -313,7 +295,7 @@
         `<div class="empty-state" style="padding:20px 0;">
            <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
            <h3>No videos yet</h3>
-           <p>Add an offered skill first, then upload video lectures for it.</p>
+           <p>${isViewingOther ? 'This user has no uploaded videos yet.' : 'Add an offered skill first, then upload video lectures for it.'}</p>
          </div>`;
       return;
     }
@@ -330,7 +312,7 @@
         `<div class="empty-state" style="padding:20px 0;">
            <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 3.9"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></div>
            <h3>No videos uploaded</h3>
-           <p>Click "Upload Video" to share your knowledge!</p>
+           <p>${isViewingOther ? 'This user has no videos for their offered skills.' : 'Click "Upload Video" to share your knowledge!'}</p>
          </div>`;
       return;
     }
@@ -347,7 +329,7 @@
                 Skill: <span class="badge badge-offer">${v.skill_name}</span>
               </div>
             </div>
-            <button class="btn btn-danger btn-sm" onclick="deleteVideo(${v.id})">Delete</button>
+            ${isViewingOther ? '' : `<button class="btn btn-danger btn-sm" onclick="deleteVideo(${v.id})">Delete</button>`}
           </div>
         </div>
       </div>`).join('');
