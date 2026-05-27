@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — SkillSwap</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">Manage your incoming and outgoing swap requests</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-3 mb-6">
+    <div class="stat-card reveal">
+      <div class="stat-number" id="countPending" style="color:var(--warning);">—</div>
+      <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat-card reveal">
+      <div class="stat-number" id="countAccepted" style="color:var(--success);">—</div>
+      <div class="stat-label">Accepted</div>
+    </div>
+    <div class="stat-card reveal">
+      <div class="stat-number" id="countRejected" style="color:var(--danger);">—</div>
+      <div class="stat-label">Rejected</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-received" onclick="showTab('received')"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.95em;height:0.95em;vertical-align:-0.1em;display:inline-block"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg> Received</button>
+    <button class="tab-btn"        id="tab-sent"     onclick="showTab('sent')"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.95em;height:0.95em;vertical-align:-0.1em;display:inline-block"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Sent</button>
+  </div>
+
+  <div id="swapList"></div>
+</div>
+
+<script src="../app.js"></script>
+<script>
+  buildNavbar('dashboard');
+  requireLogin();
+
+  const me      = getUser();
+  let allSwaps  = [];
+  let activeTab = 'received';
+
+  async function loadSwaps() {
+    showSpinner('swapList');
+    const data = await apiCall('/swaps?user_id=' + me.id);
+    if (!data.success) {
+      document.getElementById('swapList').innerHTML =
+        `<div class="alert alert-error">${data.error}</div>`;
+      return;
+    }
+    allSwaps = data.swaps;
+    document.getElementById('countPending').textContent  = allSwaps.filter(s=>s.status==='pending').length;
+    document.getElementById('countAccepted').textContent = allSwaps.filter(s=>s.status==='accepted').length;
+    document.getElementById('countRejected').textContent = allSwaps.filter(s=>s.status==='rejected').length;
+    renderSwaps();
+  }
+
+  function showTab(tab) {
+    activeTab = tab;
+    document.getElementById('tab-received').classList.toggle('active', tab==='received');
+    document.getElementById('tab-sent').classList.toggle('active', tab==='sent');
+    renderSwaps();
+  }
+
+  function renderSwaps() {
+    const listEl = document.getElementById('swapList');
+    const swaps  = activeTab === 'received'
+      ? allSwaps.filter(s => s.receiver_id === me.id)
+      : allSwaps.filter(s => s.sender_id   === me.id);
+
+    if (swaps.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><path d="M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 6.5 5H18c2.2 0 4 1.8 4 4v8Z"/><polyline points="15 9 18 9 18 11"/><path d="M6.5 5C9 5 11 7 11 9.5V17a2 2 0 0 1-2 2"/><line x1="6" y1="10" x2="7" y2="10"/></svg></div>
+          <h3>Nothing here yet</h3>
+          <p>${activeTab === 'received'
+            ? 'When someone sends you a swap request, it will appear here.'
+            : 'Go to Browse Skills and send your first swap request!'}</p>
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = swaps.map(swap => {
+      const other      = activeTab === 'received' ? swap.sender_name : swap.receiver_name;
+      const badgeClass = { pending:'badge-pending', accepted:'badge-accepted', rejected:'badge-rejected' }[swap.status];
+      const dot        = { pending:'<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" style="width:0.7em;height:0.7em;vertical-align:0.05em;display:inline-block"><circle cx="5" cy="5" r="4.5" fill="#f59e0b"/></svg>', accepted:'<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" style="width:0.7em;height:0.7em;vertical-align:0.05em;display:inline-block"><circle cx="5" cy="5" r="4.5" fill="#22c55e"/></svg>', rejected:'<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" style="width:0.7em;height:0.7em;vertical-align:0.05em;display:inline-block"><circle cx="5" cy="5" r="4.5" fill="#ef4444"/></svg>' }[swap.status];
+
+      let actions = '';
+      if (activeTab === 'received' && swap.status === 'pending') {
+        actions = `<div class="swap-actions">
+          <button class="btn btn-success btn-sm" onclick="updateSwap(${swap.id},'accepted')">Accept</button>
+          <button class="btn btn-danger btn-sm"  onclick="updateSwap(${swap.id},'rejected')">Reject</button>
+        </div>`;
+      } else if (activeTab === 'sent' && swap.status === 'pending') {
+        actions = `<button class="btn btn-outline btn-sm" onclick="cancelSwap(${swap.id})">Cancel</button>`;
+      }
+
+      return `
+        <div class="swap-card reveal">
+          <div style="flex:1;">
+            <h4>${activeTab === 'received' ? 'From' : 'To'}: ${other}</h4>
+            ${swap.message ? `<p style="font-style:italic;margin-top:4px;">"${swap.message}"</p>` : ''}
+            <div style="margin-top:8px;">
+              <span class="badge ${badgeClass}">${dot} ${swap.status}</span>
+            </div>
+          </div>
+          ${actions}
+        </div>`;
+    }).join('');
+    initReveal();
+  }
+
+  async function updateSwap(swapId, status) {
+    const data = await apiCall('/swaps/' + swapId, 'PUT', { user_id: me.id, status });
+    if (!data.success) { showToast(data.error, 'error'); return; }
+    showToast(status === 'accepted' ? 'Swap accepted!' : 'Swap rejected.', status === 'accepted' ? 'success' : '');
+    loadSwaps();
+  }
+
+  async function cancelSwap(swapId) {
+    if (!confirm('Cancel this swap request?')) return;
+    const data = await apiCall('/swaps/' + swapId, 'DELETE', { user_id: me.id });
+    if (!data.success) { showToast(data.error, 'error'); return; }
+    showToast('Swap request cancelled.');
+    loadSwaps();
+  }
+
+  loadSwaps();
+</script>
+</body>
+</html>

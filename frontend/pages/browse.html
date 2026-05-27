@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Skills — SkillSwap</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<!-- Swap Request Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modalTitle">Send Swap Request</h3>
+    <div id="modalMsg"></div>
+    <div class="form-group">
+      <label>Message <span style="font-weight:400;color:var(--text-3)">(optional, max 500 chars)</span></label>
+      <textarea id="swapMsg" rows="3" maxlength="500"
+        placeholder="Hi! I'd love to swap skills with you. I can offer..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" style="flex:1" onclick="sendSwap()">Send Request</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-header flex-between" style="flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="page-title">Browse Skills</div>
+      <div class="page-sub">Find the perfect skill partner</div>
+    </div>
+    <div id="resultCount" style="font-size:13px;color:var(--text-3);font-weight:500;"></div>
+  </div>
+
+  <!-- Search + Filter -->
+  <div class="search-wrap">
+    <div class="search-wrap-inner">
+      <span class="search-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.1em;display:inline-block"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <input type="text" class="search-input" id="search"
+        placeholder="Search people or skills..." oninput="filterCards()">
+    </div>
+    <select class="filter-select" id="typeFilter" onchange="loadUsers()">
+      <option value="">All Skills</option>
+      <option value="offer">Offering only</option>
+      <option value="want">Seeking only</option>
+    </select>
+  </div>
+
+  <div id="cardGrid"></div>
+</div>
+
+<script src="../app.js"></script>
+<script>
+  buildNavbar('browse');
+
+  let allUsers     = [];
+  let selectedUser = null;
+
+  async function loadUsers() {
+    showSkeleton('cardGrid', 6);
+    clearMsg('resultCount');
+    const type = document.getElementById('typeFilter').value;
+    const url  = type ? `/skills?type=${type}` : '/skills';
+    const data = await apiCall(url);
+    if (!data.success) {
+      document.getElementById('cardGrid').innerHTML =
+        `<div class="alert alert-error">${data.error}</div>`;
+      return;
+    }
+    const me  = getUser();
+    allUsers  = me ? data.users.filter(u => u.id !== me.id) : data.users;
+    document.getElementById('search').value = '';
+    renderCards(allUsers);
+  }
+
+  function renderCards(users) {
+    const grid = document.getElementById('cardGrid');
+    document.getElementById('resultCount').textContent =
+      users.length ? `${users.length} user${users.length !== 1 ? 's' : ''} found` : '';
+
+    if (users.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <h3>No users found</h3>
+          <p>Try adjusting your search or filter to find more people.</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = `<div class="grid-3">${users.map((user, i) => {
+      const offering = user.skills.filter(s => s.type === 'offer');
+      const wanting  = user.skills.filter(s => s.type === 'want');
+      return `
+        <div class="user-card reveal" style="transition-delay:${i * 0.05}s">
+          <div class="user-card-header">
+            <div class="avatar">${getInitials(user.name)}</div>
+            <div>
+              <div class="user-card-name">${user.name}</div>
+              <div class="user-card-loc">${user.location ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.85em;height:0.85em;vertical-align:-0.1em;display:inline-block"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ' + user.location : 'Location not set'}</div>
+            </div>
+          </div>
+
+          ${offering.length > 0 ? `
+            <div>
+              <div class="skill-section-label">Offering</div>
+              <div class="skill-tags">
+                ${offering.map(s => `
+                  <span class="skill-tag skill-tag-offer"
+                    title="Watch video lectures"
+                    onclick="window.location.href='/pages/videos.html?skill_id=${s.id}&skill_name=${encodeURIComponent(s.name)}&owner=${encodeURIComponent(user.name)}'">
+                    ${s.name} <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.3em;height:1.3em;vertical-align:-0.2em;display:inline-block"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                  </span>`).join('')}
+              </div>
+            </div>` : ''}
+
+          ${wanting.length > 0 ? `
+            <div>
+              <div class="skill-section-label">Seeking</div>
+              <div class="skill-tags">
+                ${wanting.map(s => `<span class="skill-tag skill-tag-want">${s.name}</span>`).join('')}
+              </div>
+            </div>` : ''}
+
+          <div style="margin-top:auto;padding-top:4px;">
+            ${isLoggedIn()
+              ? `<button class="btn btn-primary btn-full btn-sm"
+                   onclick="openModal(${user.id}, '${user.name}')">
+                   Request Swap
+                 </button>`
+              : `<a href="/pages/login.html" class="btn btn-outline btn-full btn-sm">
+                   Login to swap
+                 </a>`}
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+    initReveal();
+  }
+
+  function filterCards() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const f = allUsers.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      u.skills.some(s => s.name.toLowerCase().includes(q))
+    );
+    renderCards(f);
+  }
+
+  function openModal(userId, userName) {
+    selectedUser = userId;
+    document.getElementById('modalTitle').textContent = `Swap with ${userName}`;
+    document.getElementById('swapMsg').value = '';
+    clearMsg('modalMsg');
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  async function sendSwap() {
+    const me      = getUser();
+    const message = document.getElementById('swapMsg').value.trim();
+    const data    = await apiCall('/swaps', 'POST', {
+      sender_id: me.id, receiver_id: selectedUser, message
+    });
+    if (!data.success) { showError('modalMsg', data.error); return; }
+    closeModal();
+    showToast('Swap request sent!', 'success');
+  }
+
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  loadUsers();
+</script>
+</body>
+</html>

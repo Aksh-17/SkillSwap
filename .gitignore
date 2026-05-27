@@ -1,0 +1,23 @@
+# Environment variables
+.env
+
+# Node dependencies
+node_modules/
+
+# Uploaded files (videos)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE / Editor
+.vscode/
+.idea/
+*.suo
+*.swp

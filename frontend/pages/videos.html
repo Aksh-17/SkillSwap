@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Lectures — SkillSwap</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="container" style="max-width:740px;">
+
+  <div style="margin-bottom:var(--sp-5);">
+    <a href="/pages/browse.html" style="font-size:13.5px;font-weight:600;color:var(--text-2);text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+      ← Back to Browse
+    </a>
+  </div>
+
+  <div id="pageHeader"></div>
+  <div id="videoList"></div>
+</div>
+
+<script src="../app.js"></script>
+<script>
+  buildNavbar('browse');
+
+  const params    = new URLSearchParams(window.location.search);
+  const skill_id  = params.get('skill_id');
+  const skillName = params.get('skill_name') || 'Skill';
+  const owner     = params.get('owner') || 'User';
+
+  document.getElementById('pageHeader').innerHTML = `
+    <div class="section-card reveal" style="margin-bottom:var(--sp-5);">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="avatar avatar-lg">${getInitials(owner)}</div>
+        <div>
+          <div style="font-size:1.15rem;font-weight:800;letter-spacing:-0.4px;">${skillName}</div>
+          <div style="font-size:13px;color:var(--text-3);margin-top:2px;">Video lectures by ${owner}</div>
+        </div>
+      </div>
+    </div>`;
+
+  async function loadVideos() {
+    if (!skill_id) {
+      document.getElementById('videoList').innerHTML =
+        `<div class="alert alert-error">No skill selected.</div>`;
+      return;
+    }
+    showSpinner('videoList');
+    const data = await apiCall('/videos?skill_id=' + skill_id);
+    if (!data.success) {
+      document.getElementById('videoList').innerHTML =
+        `<div class="alert alert-error">${data.error}</div>`;
+      return;
+    }
+    if (data.videos.length === 0) {
+      document.getElementById('videoList').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+          <h3>No videos yet</h3>
+          <p>The skill owner hasn't uploaded any video lectures for this skill yet.</p>
+        </div>`;
+      return;
+    }
+    document.getElementById('videoList').innerHTML = data.videos.map(v => `
+      <div class="video-card reveal">
+        <video controls>
+          <source src="http://localhost:3000/uploads/${v.filename}">
+          Your browser does not support video playback.
+        </video>
+        <div class="video-card-body">
+          <div class="video-title">${v.title}</div>
+          <div class="video-meta">Uploaded by ${v.uploader_name}</div>
+        </div>
+      </div>`).join('');
+    initReveal();
+  }
+
+  loadVideos();
+</script>
+</body>
+</html>
