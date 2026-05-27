@@ -75,7 +75,7 @@
         <div class="profile-location" id="profileLocation"></div>
       </div>
     </div>
-    <button class="btn btn-outline btn-sm"
+    <button id="profileEditBtn" class="btn btn-outline btn-sm"
       style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);color:white;"
       onclick="openEditModal()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.9em;height:0.9em;vertical-align:-0.1em;display:inline-block"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Profile</button>
   </div>
@@ -84,10 +84,10 @@
   <div class="section-card reveal">
     <div class="section-header">
       <div class="section-title" id="skillCountTitle">My Skills</div>
-      <button class="btn btn-warning btn-sm" onclick="openVideoModal()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.3em;height:1.3em;vertical-align:-0.2em;display:inline-block"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Upload Video</button>
+      <button id="uploadVideoBtn" class="btn btn-warning btn-sm" onclick="openVideoModal()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.3em;height:1.3em;vertical-align:-0.2em;display:inline-block"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Upload Video</button>
     </div>
 
-    <div class="form-row mb-4">
+    <div id="skillFormRow" class="form-row mb-4">
       <div class="form-group">
         <label>Skill name</label>
         <input type="text" id="skillName" placeholder="e.g. Python, Guitar, Photography..." maxlength="100">
@@ -99,7 +99,7 @@
           <option value="want">I want to learn this</option>
         </select>
       </div>
-      <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="addSkill()">Add Skill</button>
+      <button id="addSkillBtn" class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="addSkill()">Add Skill</button>
     </div>
 
     <div id="skillMsg"></div>
@@ -122,14 +122,20 @@
   requireLogin();
 
   const me = getUser();
+  const params = new URLSearchParams(window.location.search);
+  const profileUserId = Number(params.get('user_id')) || null;
+  const isViewingOther = profileUserId && profileUserId !== me.id;
+  let profileUser = null;
   let mySkills = [];
 
   // ---- Profile hero ----
   function renderProfile() {
-    document.getElementById('avatarEl').textContent    = getInitials(me.name);
-    document.getElementById('profileName').textContent = me.name;
-    document.getElementById('profileEmail').textContent = me.email;
-    document.getElementById('profileLocation').textContent = me.location ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.85em;height:0.85em;vertical-align:-0.1em;display:inline-block"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ' + me.location : '';
+    const user = profileUser || me;
+    document.title = `${user.name} — SkillSwap`;
+    document.getElementById('avatarEl').textContent    = getInitials(user.name);
+    document.getElementById('profileName').textContent = user.name;
+    document.getElementById('profileEmail').textContent = user.email;
+    document.getElementById('profileLocation').innerHTML = user.location ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.85em;height:0.85em;vertical-align:-0.1em;display:inline-block"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ' + user.location : '';
   }
 
   // ---- Edit profile ----
@@ -155,8 +161,34 @@
     showToast('Profile updated!', 'success');
   }
 
+  async function loadProfile() {
+    if (isViewingOther) {
+      const data = await apiCall('/auth/users/' + profileUserId);
+      if (!data.success) {
+        showToast(data.error || 'Unable to load profile.', 'error');
+        profileUser = me;
+      } else {
+        profileUser = data.user;
+      }
+      document.getElementById('profileEditBtn').style.display = 'none';
+      document.getElementById('uploadVideoBtn').style.display  = 'none';
+      document.getElementById('skillFormRow').style.display   = 'none';
+    }
+    renderProfile();
+  }
+
   // ---- Skills ----
   async function loadSkills() {
+    if (isViewingOther) {
+      document.getElementById('skillCountTitle').textContent = 'Skills unavailable';
+      document.getElementById('skillList').innerHTML = `
+        <div class="empty-state" style="padding:24px 0;">
+          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><path d="M13 16h-1v-4h-1"/><path d="M12 7a4 4 0 0 1 0 8"/><path d="M8 12h8"/></svg></div>
+          <h3>Private Profile</h3>
+          <p>Skills are not editable when viewing another user from requests.</p>
+        </div>`;
+      return;
+    }
     showSpinner('skillList');
     const data = await apiCall('/skills/mine?user_id=' + me.id);
     if (!data.success) return;
@@ -265,6 +297,15 @@
 
   // ---- My Videos ----
   async function loadMyVideos() {
+    if (isViewingOther) {
+      document.getElementById('myVideoList').innerHTML = `
+        <div class="empty-state" style="padding:20px 0;">
+          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:2em;height:2em;display:block;margin:0 auto"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+          <h3>Video details hidden</h3>
+          <p>Video uploads are not shown when viewing another user from requests.</p>
+        </div>`;
+      return;
+    }
     showSpinner('myVideoList');
     const offers = mySkills.filter(s => s.type === 'offer');
     if (offers.length === 0) {
@@ -319,8 +360,7 @@
     loadMyVideos();
   }
 
-  renderProfile();
-  loadSkills().then(() => loadMyVideos());
+  loadProfile().then(() => loadSkills().then(() => loadMyVideos()));
 </script>
 </body>
 </html>

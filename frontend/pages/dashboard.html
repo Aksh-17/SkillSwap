@@ -95,13 +95,22 @@
       const dot        = { pending:'<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" style="width:0.7em;height:0.7em;vertical-align:0.05em;display:inline-block"><circle cx="5" cy="5" r="4.5" fill="#f59e0b"/></svg>', accepted:'<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" style="width:0.7em;height:0.7em;vertical-align:0.05em;display:inline-block"><circle cx="5" cy="5" r="4.5" fill="#22c55e"/></svg>', rejected:'<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" style="width:0.7em;height:0.7em;vertical-align:0.05em;display:inline-block"><circle cx="5" cy="5" r="4.5" fill="#ef4444"/></svg>' }[swap.status];
 
       let actions = '';
+      const otherId = activeTab === 'received' ? swap.sender_id : swap.receiver_id;
+      const viewButton = `<button class="btn btn-outline btn-sm" onclick="viewProfile(${otherId})">View Profile</button>`;
+
       if (activeTab === 'received' && swap.status === 'pending') {
         actions = `<div class="swap-actions">
           <button class="btn btn-success btn-sm" onclick="updateSwap(${swap.id},'accepted')">Accept</button>
           <button class="btn btn-danger btn-sm"  onclick="updateSwap(${swap.id},'rejected')">Reject</button>
+          ${viewButton}
         </div>`;
       } else if (activeTab === 'sent' && swap.status === 'pending') {
-        actions = `<button class="btn btn-outline btn-sm" onclick="cancelSwap(${swap.id})">Cancel</button>`;
+        actions = `<div class="swap-actions">
+          <button class="btn btn-outline btn-sm" onclick="cancelSwap(${swap.id})">Cancel</button>
+          ${viewButton}
+        </div>`;
+      } else {
+        actions = `<div class="swap-actions">${viewButton}</div>`;
       }
 
       return `
@@ -124,6 +133,10 @@
     if (!data.success) { showToast(data.error, 'error'); return; }
     showToast(status === 'accepted' ? 'Swap accepted!' : 'Swap rejected.', status === 'accepted' ? 'success' : '');
     loadSwaps();
+  }
+
+  function viewProfile(userId) {
+    window.location.href = '/pages/profile.html?user_id=' + userId;
   }
 
   async function cancelSwap(swapId) {

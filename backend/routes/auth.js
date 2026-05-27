@@ -72,6 +72,29 @@ router.post('/login', async (req, res) => {
 });
 
 
+// GET USER PROFILE
+// GET /api/users/:id
+router.get('/users/:id', async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!userId) {
+    return res.json({ success: false, error: 'Invalid user id' });
+  }
+
+  try {
+    const [rows] = await db.execute(
+      'SELECT id, name, email, location FROM users WHERE id = ?',
+      [userId]
+    );
+    if (rows.length === 0) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    res.json({ success: true, user: rows[0] });
+  } catch (error) {
+    res.json({ success: false, error: 'Something went wrong' });
+  }
+});
+
+
 // EDIT PROFILE
 // PUT /api/auth/edit
 // Body: { user_id, name, location }
