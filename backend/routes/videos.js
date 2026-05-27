@@ -34,12 +34,11 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage:    storage,
   fileFilter: fileFilter,
-  limits:     { fileSize: 200 * 1024 * 1024 } // 200 MB max
+  limits:     { fileSize: 200 * 1024 * 1024 }
 });
 
 
 // GET VIDEOS FOR A SKILL
-// GET /api/videos?skill_id=3
 router.get('/', async (req, res) => {
   const { skill_id } = req.query;
 
@@ -65,8 +64,6 @@ router.get('/', async (req, res) => {
 
 
 // UPLOAD A VIDEO
-// POST /api/videos/upload
-// Form data: { user_id, skill_id, title, video file }
 router.post('/upload', (req, res) => {
 
   upload.single('video')(req, res, async (err) => {
@@ -126,8 +123,6 @@ router.post('/upload', (req, res) => {
 
 
 // DELETE A VIDEO
-// DELETE /api/videos/:id
-// Body: { user_id }
 router.delete('/:id', async (req, res) => {
   const { user_id } = req.body;
   const video_id    = req.params.id;

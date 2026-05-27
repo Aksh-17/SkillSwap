@@ -6,8 +6,6 @@ const router  = express.Router();
 
 
 // SEND A SWAP REQUEST
-// POST /api/swaps
-// Body: { sender_id, receiver_id, message }
 router.post('/', async (req, res) => {
   const { sender_id, receiver_id, message } = req.body;
 
@@ -54,7 +52,6 @@ router.post('/', async (req, res) => {
 
 
 // GET MY SWAPS
-// GET /api/swaps?user_id=3
 router.get('/', async (req, res) => {
   const { user_id } = req.query;
 
@@ -89,8 +86,6 @@ router.get('/', async (req, res) => {
 
 
 // ACCEPT OR REJECT A SWAP
-// PUT /api/swaps/:id
-// Body: { user_id, status }  -- status = 'accepted' or 'rejected'
 router.put('/:id', async (req, res) => {
   const { user_id, status } = req.body;
   const swap_id = req.params.id;
@@ -127,8 +122,6 @@ router.put('/:id', async (req, res) => {
 
 
 // CANCEL A SWAP (sender cancels their own pending request)
-// DELETE /api/swaps/:id
-// Body: { user_id }
 router.delete('/:id', async (req, res) => {
   const { user_id } = req.body;
   const swap_id     = req.params.id;

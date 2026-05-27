@@ -6,7 +6,6 @@ const router  = express.Router();
 
 
 // REGISTER
-// POST /api/auth/register
 router.post('/register', async (req, res) => {
   const { name, email, password, location } = req.body;
 
@@ -46,7 +45,6 @@ router.post('/register', async (req, res) => {
 
 
 // LOGIN
-// POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -73,7 +71,6 @@ router.post('/login', async (req, res) => {
 
 
 // GET USER PROFILE
-// GET /api/users/:id
 router.get('/users/:id', async (req, res) => {
   const userId = Number(req.params.id);
   if (!userId) {
@@ -96,8 +93,6 @@ router.get('/users/:id', async (req, res) => {
 
 
 // EDIT PROFILE
-// PUT /api/auth/edit
-// Body: { user_id, name, location }
 router.put('/edit', async (req, res) => {
   const { user_id, name, location } = req.body;
 

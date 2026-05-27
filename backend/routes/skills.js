@@ -6,9 +6,8 @@ const router  = express.Router();
 
 
 // GET ALL USERS WITH THEIR SKILLS
-// GET /api/skills?type=offer   (optional filter)
 router.get('/', async (req, res) => {
-  const { type } = req.query; // optional: 'offer' or 'want'
+  const { type } = req.query;
 
   try {
     let query = `
@@ -62,7 +61,6 @@ router.get('/', async (req, res) => {
 
 
 // GET MY SKILLS
-// GET /api/skills/mine?user_id=3
 router.get('/mine', async (req, res) => {
   const { user_id } = req.query;
 
@@ -85,8 +83,6 @@ router.get('/mine', async (req, res) => {
 
 
 // ADD A SKILL
-// POST /api/skills
-// Body: { user_id, name, type }
 router.post('/', async (req, res) => {
   const { user_id, name, type } = req.body;
 
@@ -117,8 +113,6 @@ router.post('/', async (req, res) => {
 
 
 // DELETE A SKILL
-// DELETE /api/skills/:id
-// Body: { user_id }
 router.delete('/:id', async (req, res) => {
   const { user_id } = req.body;
   const skill_id    = req.params.id;
